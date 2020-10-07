@@ -1,0 +1,118 @@
+name: Nightly Build
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 4 * * *'
+
+jobs:
+
+  # ---------------------------------------------------------------------------
+  # Update SimCraft
+  # ---------------------------------------------------------------------------
+
+  update_simc:
+    name: Update SimCraft
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.update_nightly.outputs.upload_url }}
+
+    steps:
+
+    - name: Checkout Repository
+      uses: actions/checkout@v2
+      with:
+        submodules: 'recursive'
+
+    - name: Update SimCraft to Latest Commit
+      run: |
+        git config --global user.name 'Nightly Build'
+        git config --global user.email '<>'
+        git submodule update --remote
+        git add simc
+        git commit -m "Update SimCraft $(date -u)" || true
+        git push
+
+    - name: Update Nightly Build Release
+      id: update_nightly
+      uses: Trinovantes/action-automatic-release@master
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        automatic_release_tag: nightly
+        prerelease: true
+        title: "Nightly Build"
+
+  # ---------------------------------------------------------------------------
+  # Windows Build
+  # ---------------------------------------------------------------------------
+
+  windows_build:
+    needs: update_simc
+    name: Windows Build
+    runs-on: windows-latest
+
+    steps:
+
+    - name: Checkout Repository
+      uses: actions/checkout@v2
+      with:
+        ref: nightly
+        submodules: 'recursive'
+
+    - name: Add msbuild to PATH
+      uses: microsoft/setup-msbuild@v1.0.2
+
+    - name: Create build Directory
+      run: mkdir ./simc/build
+
+    - name: Compile SimCraft
+      working-directory: ./simc/build
+      run: |
+        cmake ../ -DBUILD_GUI=OFF -DSC_NO_NETWORKING=ON
+        msbuild ALL_BUILD.vcxproj -p:Configuration=Release
+
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.update_simc.outputs.upload_url }}
+        asset_path: ./simc/build/Release/simc.exe
+        asset_name: simc_nightly_windows.exe
+        asset_content_type: application/octet-stream
+
+  # ---------------------------------------------------------------------------
+  # Ubuntu Build
+  # ---------------------------------------------------------------------------
+
+  ubuntu-build:
+    needs: update_simc
+    name: Ubuntu Build
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Checkout Repository
+      uses: actions/checkout@v2
+      with:
+        ref: nightly
+        submodules: 'recursive'
+
+    - name: Create build Directory
+      run: mkdir ./simc/build
+
+    - name: Compile SimCraft
+      working-directory: ./simc/build
+      run: |
+        cmake ../ -DBUILD_GUI=OFF -DSC_NO_NETWORKING=ON
+        make
+
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.update_simc.outputs.upload_url }}
+        asset_path: ./simc/build/simc
+        asset_name: simc_nightly_ubuntu
+        asset_content_type: application/octet-stream
