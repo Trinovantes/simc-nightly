@@ -3,10 +3,10 @@ name: Nightly Build
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 4 * * *'
+    - cron: '0 0 * * *'
 
 env:
-  TAG: nightly
+  NIGHTLY_TAG: nightly
 
 jobs:
 
@@ -43,7 +43,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        automatic_release_tag: ${{ env.TAG }}
+        automatic_release_tag: ${{ env.NIGHTLY_TAG }}
         title: "Nightly Build"
 
   # ---------------------------------------------------------------------------
@@ -60,7 +60,7 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v2
       with:
-        ref: ${{ env.TAG }}
+        ref: ${{ env.NIGHTLY_TAG }}
         submodules: 'recursive'
 
     - name: Add msbuild to PATH
@@ -99,7 +99,7 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v2
       with:
-        ref: ${{ env.TAG }}
+        ref: ${{ env.NIGHTLY_TAG }}
         submodules: 'recursive'
 
     - name: Create build Directory
