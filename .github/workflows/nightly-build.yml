@@ -39,12 +39,12 @@ jobs:
 
     - name: Update Nightly Build Release
       id: update_nightly
-      uses: Trinovantes/action-automatic-release@master
+      uses: Trinovantes/action-automatic-release@v2.0.0
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        automatic_release_tag: ${{ env.NIGHTLY_TAG }}
-        title: "Nightly Build"
+        auto_release_tag: ${{ env.NIGHTLY_TAG }}
+        auto_release_title: "Nightly Build"
 
   # ---------------------------------------------------------------------------
   # Windows Build
